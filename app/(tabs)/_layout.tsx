@@ -30,6 +30,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="search/index"
+        options={{
+          title: 'Tìm kiếm',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
+        }}
+      />
         <Tabs.Screen
           name="favourites/index"
         options={{
@@ -39,6 +46,7 @@ export default function TabLayout() {
           ),
         }}
       />
+     
     </Tabs>
   );
 }

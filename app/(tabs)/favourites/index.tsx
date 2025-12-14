@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { FavouriteCard } from '@/components/favourite/FavouriteCard';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFavorites } from '@/hooks/useFavorites';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function FavouritesScreen() {
   const router = useRouter();
@@ -14,31 +15,50 @@ export default function FavouritesScreen() {
   };
 
   const onToggle = (id: string) => {
-    // FavouriteCard calls onToggle with id only; remove by id
     remove(id);
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <LinearGradient
+        colors={['#8e3cff', '#ff49a1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
         <Pressable style={styles.back} onPress={() => router.back()}>
-          <MaterialIcons name="arrow-back" size={24} color="#fff" />
+          <MaterialIcons name="arrow-back" size={28} color="#fff" />
         </Pressable>
+
         <Text style={styles.headerTitle}>Yêu thích</Text>
-      </View>
+      </LinearGradient>
 
       {favourites.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <View style={styles.heartCircle}>
+          <LinearGradient
+            colors={['#ff3c96', '#ffc0cb']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heartCircle}
+          >
             <MaterialIcons name="favorite" size={42} color="#fff" />
-          </View>
+          </LinearGradient>
+
           <Text style={styles.emptyTitle}>Chưa có tác phẩm yêu thích</Text>
-          <Text style={styles.emptySubtitle}>Hãy khám phá và thêm tác phẩm vào danh sách yêu thích của bạn</Text>
+          <Text style={styles.emptySubtitle}>
+            Hãy khám phá và thêm tác phẩm vào danh sách yêu thích của bạn
+          </Text>
+
           <Pressable style={styles.exploreButton} onPress={onExplore}>
-            <View style={styles.exploreInner}>
+            <LinearGradient
+              colors={['#8e3cff', '#ff49a1']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.exploreInner}
+            >
               <MaterialIcons name="collections" size={18} color="#fff" />
               <Text style={styles.exploreText}>  Khám phá tác phẩm</Text>
-            </View>
+            </LinearGradient>
           </Pressable>
         </View>
       ) : (
@@ -59,27 +79,32 @@ export default function FavouritesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+
   header: {
-    height: 80,
-    paddingTop: 36,
+    height: 90,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#8e3cff',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
+    paddingTop: 36
   },
+
   back: {
     position: 'absolute',
     left: 12,
     top: 38,
   },
-  headerTitle: { color: '#fff', fontWeight: '700', fontSize: 18 },
+  headerTitle: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 30,
+    textAlign: 'center',
+  },
+
   emptyContainer: { alignItems: 'center', paddingTop: 40 },
+
   heartCircle: {
     width: 130,
     height: 130,
     borderRadius: 65,
-    backgroundColor: '#ff7fb3',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
@@ -89,8 +114,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', marginBottom: 6 },
-  emptySubtitle: { color: '#7a7a7a', marginBottom: 18, textAlign: 'center', paddingHorizontal: 40 },
+
+  emptyTitle: { fontSize: 20, fontWeight: '700', marginBottom: 6 },
+  emptySubtitle: {
+    color: '#7a7a7a',
+    marginBottom: 18,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+
   exploreButton: { marginTop: 8 },
   exploreInner: {
     paddingVertical: 12,
@@ -98,8 +130,8 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#7c3aed',
   },
   exploreText: { color: '#fff', fontWeight: '700' },
+
   list: { padding: 12, paddingTop: 18 },
 });
