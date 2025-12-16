@@ -1,98 +1,205 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { StyleSheet, ScrollView, View, Alert } from 'react-native';
+import { router } from 'expo-router';
+import { HomeHeader } from '@/components/home/home-header';
+import { QuickAccessSection } from '@/components/home/quick-access-section';
+import { FeaturedArtistsSection } from '@/components/home/featured-artists-section';
+import { PopularRoomsSection } from '@/components/home/popular-rooms-section';
+import { FeaturedArtworksGrid } from '@/components/home/featured-artworks-grid';
+import { BottomNavigation } from '@/components/ui/bottom-navigation';
+import { MOCK_CATEGORIES, MOCK_ROOMS, MOCK_ARTWORKS } from '@/data/mock-data';
+import { Artist, Category, Room, Artwork } from '@/models/types';
+import { useMetArtists, useMetDepartments, useMetArtworks, useRecentArtworks } from '@/hooks/use-met-api';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+/**
+ * Helper function to parse year from objectDate string
+ * Examples: "1889", "ca. 1889", "1860-1870", "17th century"
+ */
+function parseYear(objectDate: string): number {
+  if (!objectDate) return 0;
+  
+  // Extract first 4-digit number from the string
+  const yearMatch = objectDate.match(/\b(\d{4})\b/);
+  if (yearMatch) {
+    return parseInt(yearMatch[1]);
+  }
+  
+  // Handle century format like "17th century"
+  const centuryMatch = objectDate.match(/(\d{1,2})(?:st|nd|rd|th)\s+century/i);
+  if (centuryMatch) {
+    const century = parseInt(centuryMatch[1]);
+    return (century - 1) * 100 + 50; // Return middle year of century
+  }
+  
+  return 0; // Return 0 if unable to parse
+}
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Fetch featured artists from Met Museum API
+  const { artists: metArtists, loading: artistsLoading } = useMetArtists(4);
+  
+  // Fetch featured departments from Met Museum API
+  const { departments: metDepartments, loading: departmentsLoading } = useMetDepartments(3);
+  
+  // Fetch featured artworks from Met Museum API
+  const { artworks: metArtworks, loading: artworksLoading } = useMetArtworks(10);
+  
+  // Fetch recent artworks from Met Museum API
+  const { artworks: metRecentArtworks, loading: recentArtworksLoading } = useRecentArtworks(10);
+  
+  // Transform Met API data to our Artist type
+  const artists: Artist[] = useMemo(() => {
+    const colors = ['#8B5CF6', '#3B82F6', '#EC4899', '#F59E0B', '#10B981'];
+    
+    return metArtists.map((metArtist, index) => ({
+      id: `met-${index}`,
+      name: metArtist.name,
+      artworkCount: metArtist.artworkCount,
+      primaryImage: metArtist.primaryImage,
+      color: colors[index % colors.length],
+    }));
+  }, [metArtists]);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  // Transform Met API departments to our Room type
+  const rooms: Room[] = useMemo(() => {
+    const colors = ['#EC4899', '#8B5CF6', '#F59E0B'];
+    
+    return metDepartments.map((dept, index) => ({
+      id: `dept-${dept.departmentId}`,
+      name: dept.name,
+      artworkCount: dept.artworkCount,
+      departmentId: dept.departmentId,
+      color: colors[index % colors.length],
+    }));
+  }, [metDepartments]);
+
+  // Transform Met API artworks to our Artwork type
+  const featuredArtworks: Artwork[] = useMemo(() => {
+    return metArtworks.map((metArtwork, index) => ({
+      id: `artwork-${metArtwork.objectID}`,
+      title: metArtwork.title,
+      artistName: metArtwork.artistDisplayName || 'Unknown Artist',
+      year: parseYear(metArtwork.objectDate),
+      imageUrl: metArtwork.primaryImage,
+      isFeatured: true,
+    }));
+  }, [metArtworks]);
+
+  // Transform Met API recent artworks to our Artwork type
+  const recentArtworks: Artwork[] = useMemo(() => {
+    return metRecentArtworks.map((metArtwork, index) => ({
+      id: `recent-${metArtwork.objectID}`,
+      title: metArtwork.title,
+      artistName: metArtwork.artistDisplayName || 'Unknown Artist',
+      year: parseYear(metArtwork.objectDate),
+      imageUrl: metArtwork.primaryImage,
+      isNew: true,
+    }));
+  }, [metRecentArtworks]);
+
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    // Implement search logic here
+  };
+
+  const handleCategoryPress = (category: Category) => {
+    // Navigate to timeline screen if Timeline category
+    if (category.id === '4' || category.name === 'Timeline') {
+      router.push('/timeline');
+    } else {
+      Alert.alert('Category', `Navigating to ${category.name}`);
+      // Navigate to other category screens
+    }
+  };
+
+  const handleArtistPress = (artist: Artist) => {
+    Alert.alert('Artist', `Viewing ${artist.name}`);
+    // Navigate to artist detail screen
+  };
+
+  const handleRoomPress = (room: Room) => {
+    Alert.alert('Room', `Viewing ${room.name}`);
+    // Navigate to room detail screen
+  };
+
+  const handleArtworkPress = (artwork: Artwork) => {
+    Alert.alert('Artwork', `Viewing ${artwork.title}`);
+    // Navigate to artwork detail screen
+  };
+
+  const handleViewAllArtists = () => {
+    Alert.alert('View All', 'Viewing all artists');
+    // Navigate to artists list screen
+  };
+
+  const handleViewAllRooms = () => {
+    Alert.alert('View All', 'Viewing all rooms');
+    // Navigate to rooms list screen
+  };
+
+  const handleTabPress = (tab: 'home' | 'artworks' | 'search' | 'favorites') => {
+    Alert.alert('Navigation', `Navigating to ${tab}`);
+    // Navigate to different tabs
+  };
+
+  return (
+    <View style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        <HomeHeader onSearch={handleSearch} />
+        
+        <View style={styles.content}>
+          <QuickAccessSection 
+            categories={MOCK_CATEGORIES}
+            onCategoryPress={handleCategoryPress}
+          />
+          
+          <FeaturedArtistsSection 
+            artists={artists}
+            loading={artistsLoading}
+            onArtistPress={handleArtistPress}
+            onViewAll={handleViewAllArtists}
+          />
+          
+          <PopularRoomsSection 
+            rooms={rooms}
+            loading={departmentsLoading}
+            onRoomPress={handleRoomPress}
+            onViewAll={handleViewAllRooms}
+          />
+
+          <FeaturedArtworksGrid
+            featuredArtworks={featuredArtworks}
+            recentArtworks={recentArtworks}
+            featuredLoading={artworksLoading}
+            recentLoading={recentArtworksLoading}
+            onArtworkPress={handleArtworkPress}
+          />
+        </View>
+      </ScrollView>
+
+      <BottomNavigation 
+        activeTab="home"
+        onTabPress={handleTabPress}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  scrollView: {
+    flex: 1,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  content: {
+    paddingTop: 20,
+    paddingBottom: 40,
   },
 });
