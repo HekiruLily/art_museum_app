@@ -4,10 +4,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SearchBar } from '@/components/ui/search-bar';
 
 interface HomeHeaderProps {
-  onSearch?: (text: string) => void;
+  onSearchPress?: () => void;
 }
 
-export function HomeHeader({ onSearch }: HomeHeaderProps) {
+export function HomeHeader({ onSearchPress }: HomeHeaderProps) {
   return (
     <ImageBackground
       source={require('@/assets/images/museum-main.jpg')}
@@ -20,7 +20,11 @@ export function HomeHeader({ onSearch }: HomeHeaderProps) {
       >
         <Text style={styles.title}>Bảo Tàng Mỹ Thuật</Text>
         <Text style={styles.subtitle}>Khám phá nghệ thuật thế giới</Text>
-        <SearchBar placeholder="Tìm tác phẩm, nghệ sĩ..." onChangeText={onSearch} />
+        <SearchBar 
+          placeholder="Tìm tác phẩm, nghệ sĩ..." 
+          onPress={onSearchPress}
+          editable={false}
+        />
       </LinearGradient>
     </ImageBackground>
   );

@@ -100,9 +100,9 @@ export default function HomeScreen() {
     }));
   }, [metRecentArtworks]);
 
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-    // Implement search logic here
+  const handleSearch = () => {
+    // Navigate to search screen
+    router.push('/search');
   };
 
   const handleCategoryPress = (category: Category) => {
@@ -178,7 +178,7 @@ export default function HomeScreen() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <HomeHeader onSearch={handleSearch} />
+        <HomeHeader onSearchPress={handleSearch} />
         
         <View style={styles.content}>
           <QuickAccessSection 
