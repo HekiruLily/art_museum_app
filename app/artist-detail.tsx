@@ -132,7 +132,16 @@ export default function ArtistDetailScreen() {
 
           {/* Artworks Grid */}
           {allArtworks.map((artwork, index) => (
-            <View key={index} style={styles.artworkCard}>
+            <TouchableOpacity
+              key={index}
+              style={styles.artworkCard}
+              onPress={() => {
+                router.push({
+                  pathname: '/artwork-detail',
+                  params: { artworkId: artwork.objectID.toString() }
+                });
+              }}
+            >
               <Image
                 source={{ uri: artwork.primaryImage }}
                 style={styles.artworkImage}
@@ -146,7 +155,7 @@ export default function ArtistDetailScreen() {
                   {artwork.objectDate || 'Date unknown'}
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
 
           {/* Loading indicator */}

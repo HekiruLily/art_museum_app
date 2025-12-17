@@ -8,15 +8,22 @@ interface ArtworkCardProps {
 }
 
 export function ArtworkCard({ artwork, onPress }: ArtworkCardProps) {
+  // Support both mock data format (imageUrl) and Met Museum API format (primaryImage)
+  const imageUrl = (artwork as any).imageUrl || (artwork as any).primaryImage;
+  const title = artwork.title;
+  const artistName = artwork.artistName || (artwork as any).artistDisplayName || 'Unknown Artist';
+  const year = artwork.year || (artwork as any).objectDate || '';
+  const isNew = artwork.isNew || false;
+  
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.imageContainer}>
         <Image 
-          source={{ uri: artwork.imageUrl }} 
+          source={{ uri: imageUrl }} 
           style={styles.image}
           resizeMode="cover"
         />
-        {artwork.isNew && (
+        {isNew && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>MỚI</Text>
           </View>
@@ -24,13 +31,13 @@ export function ArtworkCard({ artwork, onPress }: ArtworkCardProps) {
       </View>
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={1}>
-          {artwork.title}
+          {title}
         </Text>
         <Text style={styles.artist} numberOfLines={1}>
-          {artwork.artistName}
+          {artistName}
         </Text>
-        {artwork.year > 0 && (
-          <Text style={styles.year}>{artwork.year}</Text>
+        {year && (
+          <Text style={styles.year}>{year}</Text>
         )}
       </View>
     </TouchableOpacity>
