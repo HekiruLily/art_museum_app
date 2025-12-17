@@ -52,7 +52,11 @@ export default function ArtworkDetailScreen() {
     try {
       setLoading(true);
       const data = await metMuseumAPI.getArtworkById(artworkId);
-      setArtwork(data);
+      if (data) {
+        setArtwork(data);
+      } else {
+        Alert.alert('Lỗi', 'Không thể tải thông tin tác phẩm');
+      }
     } catch (error) {
       console.error('Error loading artwork:', error);
       Alert.alert('Lỗi', 'Không thể tải thông tin tác phẩm');

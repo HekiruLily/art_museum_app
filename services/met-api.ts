@@ -58,6 +58,35 @@ const FAMOUS_ARTISTS = [
 ];
 
 /**
+ * Helper function to safely parse JSON responses
+ */
+async function safeFetch<T>(url: string): Promise<T | null> {
+  try {
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      // Don't log 403/404 errors as they're expected for restricted/unavailable objects
+      if (response.status !== 403 && response.status !== 404) {
+        console.error(`HTTP error! status: ${response.status} for URL: ${url}`);
+      }
+      return null;
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error(`Invalid content-type: ${contentType} for URL: ${url}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`Error fetching ${url}:`, error);
+    return null;
+  }
+}
+
+/**
  * Tìm kiếm artworks theo query
  */
 export async function searchArtworks(query: string, options?: {
@@ -71,16 +100,16 @@ export async function searchArtworks(query: string, options?: {
   if (options?.isHighlight) params.append('isHighlight', 'true');
   if (options?.departmentId) params.append('departmentId', options.departmentId.toString());
   
-  const response = await fetch(`${BASE_URL}/search?${params}`);
-  return response.json();
+  const data = await safeFetch<SearchResponse>(`${BASE_URL}/search?${params}`);
+  return data || { total: 0, objectIDs: null };
 }
 
 /**
  * Lấy thông tin chi tiết của 1 object
  */
-export async function getObject(objectID: number): Promise<MetObject> {
-  const response = await fetch(`${BASE_URL}/objects/${objectID}`);
-  return response.json();
+export async function getObject(objectID: number): Promise<MetObject | null> {
+  const data = await safeFetch<MetObject>(`${BASE_URL}/objects/${objectID}`);
+  return data;
 }
 
 /**
@@ -106,7 +135,7 @@ export async function getArtistArtworks(artistName: string, limit: number = 10):
       try {
         const artwork = await getObject(objectID);
         // Chỉ lấy artwork có hình ảnh và đúng nghệ sĩ
-        if (artwork.primaryImage && artwork.artistDisplayName.toLowerCase().includes(artistName.toLowerCase())) {
+        if (artwork && artwork.primaryImage && artwork.artistDisplayName.toLowerCase().includes(artistName.toLowerCase())) {
           artworks.push(artwork);
         }
       } catch (error) {
@@ -187,7 +216,7 @@ export async function getHighlightArtworks(limit: number = 10): Promise<MetObjec
       try {
         const artwork = await getObject(objectID);
         // Chỉ lấy artwork có đầy đủ thông tin
-        if (artwork.primaryImage && artwork.title && artwork.objectDate) {
+        if (artwork && artwork.primaryImage && artwork.title && artwork.objectDate) {
           artworks.push(artwork);
         }
         
@@ -218,10 +247,9 @@ export async function getRecentArtworks(limit: number = 10): Promise<MetObject[]
       if (artworks.length >= limit) break;
       
       try {
-        const response = await fetch(`${BASE_URL}/objects?departmentIds=${deptId}`);
-        const data = await response.json();
+        const data = await safeFetch<{ objectIDs: number[]; total: number }>(`${BASE_URL}/objects?departmentIds=${deptId}`);
         
-        if (data.objectIDs && data.objectIDs.length > 0) {
+        if (data && data.objectIDs && data.objectIDs.length > 0) {
           // Chọn ngẫu nhiên từ department này
           const shuffled = [...data.objectIDs].sort(() => 0.5 - Math.random());
           const selectedIDs = shuffled.slice(0, Math.ceil(limit / departmentIds.length) + 5);
@@ -232,7 +260,7 @@ export async function getRecentArtworks(limit: number = 10): Promise<MetObject[]
             try {
               const artwork = await getObject(objectID);
               // Chỉ lấy artwork có đầy đủ thông tin và có hình ảnh
-              if (artwork.primaryImage && artwork.title && artwork.objectDate) {
+              if (artwork && artwork.primaryImage && artwork.title && artwork.objectDate) {
                 artworks.push(artwork);
               }
               
@@ -271,9 +299,8 @@ export interface Department {
  */
 export async function getDepartments(): Promise<Department[]> {
   try {
-    const response = await fetch(`${BASE_URL}/departments`);
-    const data = await response.json();
-    return data.departments || [];
+    const data = await safeFetch<{ departments: Department[] }>(`${BASE_URL}/departments`);
+    return data?.departments || [];
   } catch (error) {
     console.error('Error fetching departments:', error);
     return [];
@@ -285,9 +312,8 @@ export async function getDepartments(): Promise<Department[]> {
  */
 export async function getDepartmentArtworkCount(departmentId: number): Promise<number> {
   try {
-    const response = await fetch(`${BASE_URL}/objects?departmentIds=${departmentId}`);
-    const data = await response.json();
-    return data.total || 0;
+    const data = await safeFetch<{ total: number }>(`${BASE_URL}/objects?departmentIds=${departmentId}`);
+    return data?.total || 0;
   } catch (error) {
     console.error(`Error fetching artwork count for department ${departmentId}:`, error);
     return 0;
@@ -355,10 +381,9 @@ export async function getTimelineArtworks(): Promise<MetObject[]> {
     // Lấy object IDs từ mỗi department
     for (const deptId of departmentIds) {
       try {
-        const response = await fetch(`${BASE_URL}/objects?departmentIds=${deptId}`);
-        const data = await response.json();
+        const data = await safeFetch<{ objectIDs: number[] }>(`${BASE_URL}/objects?departmentIds=${deptId}`);
         
-        if (data.objectIDs && data.objectIDs.length > 0) {
+        if (data && data.objectIDs && data.objectIDs.length > 0) {
           // Lấy 20 IDs ngẫu nhiên từ mỗi department
           const shuffled = [...data.objectIDs].sort(() => 0.5 - Math.random());
           allObjectIDs.push(...shuffled.slice(0, 20));
@@ -420,16 +445,11 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 async function searchByArtist(artistName: string): Promise<SearchResponse> {
   try {
     await delay(100);
-    const response = await fetch(
+    const data = await safeFetch<SearchResponse>(
       `${BASE_URL}/search?artistOrCulture=true&hasImages=true&q=${artistName}`
     );
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
+    return data || { objectIDs: null, total: 0 };
   } catch (error) {
     console.error('Error searching by artist:', error);
     return { objectIDs: null, total: 0 };
@@ -440,16 +460,7 @@ async function searchByArtist(artistName: string): Promise<SearchResponse> {
 async function getArtworkDetails(objectId: number): Promise<MetObject | null> {
   try {
     await delay(100);
-    const response = await fetch(`${BASE_URL}/objects/${objectId}`);
-    
-    if (!response.ok) {
-      if (response.status === 404 || response.status === 403) {
-        return null;
-      }
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
+    const data = await safeFetch<MetObject>(`${BASE_URL}/objects/${objectId}`);
     return data;
   } catch (error) {
     const err = error as Error;

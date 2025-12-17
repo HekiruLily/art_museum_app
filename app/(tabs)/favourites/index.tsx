@@ -60,7 +60,8 @@ export default function FavouritesScreen() {
       setLoading(true);
       const artworkPromises = favorites.map(id => metMuseumAPI.getArtworkById(id));
       const artworkData = await Promise.all(artworkPromises);
-      setArtworks(artworkData.filter(art => art !== null));
+      const validArtworks = artworkData.filter((art): art is NonNullable<typeof art> => art !== null);
+      setArtworks(validArtworks);
     } catch (error) {
       console.error('Error loading favorite artworks:', error);
     } finally {
