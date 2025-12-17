@@ -108,6 +108,9 @@ export default function HomeScreen() {
     // Navigate to timeline screen if Timeline category
     if (category.id === '4' || category.name === 'Timeline') {
       router.push('/timeline');
+    } else if (category.id === '2' || category.name === 'Nghệ sĩ') {
+      // Navigate to artists screen
+      router.push('/artists');
     } else {
       Alert.alert('Category', `Navigating to ${category.name}`);
       // Navigate to other category screens
@@ -130,8 +133,8 @@ export default function HomeScreen() {
   };
 
   const handleViewAllArtists = () => {
-    Alert.alert('View All', 'Viewing all artists');
     // Navigate to artists list screen
+    router.push('/artists');
   };
 
   const handleViewAllRooms = () => {

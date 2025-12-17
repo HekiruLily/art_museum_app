@@ -413,3 +413,189 @@ export async function getTimelineArtworks(): Promise<MetObject[]> {
   }
 }
 
+// Helper function để delay giữa các requests
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Tìm kiếm artworks theo nghệ sỹ
+async function searchByArtist(artistName: string): Promise<SearchResponse> {
+  try {
+    await delay(100);
+    const response = await fetch(
+      `${BASE_URL}/search?artistOrCulture=true&hasImages=true&q=${artistName}`
+    );
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error searching by artist:', error);
+    return { objectIDs: null, total: 0 };
+  }
+}
+
+// Lấy thông tin chi tiết artwork
+async function getArtworkDetails(objectId: number): Promise<MetObject | null> {
+  try {
+    await delay(100);
+    const response = await fetch(`${BASE_URL}/objects/${objectId}`);
+    
+    if (!response.ok) {
+      if (response.status === 404 || response.status === 403) {
+        return null;
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    const err = error as Error;
+    if (!err.message?.includes('404') && !err.message?.includes('403')) {
+      console.error(`Error fetching artwork ${objectId}:`, err.message);
+    }
+    return null;
+  }
+}
+
+/**
+ * Tìm kiếm nghệ sỹ phổ biến
+ */
+export function searchPopularArtists(): string[] {
+  return [
+    'Vincent van Gogh',
+    'Pablo Picasso',
+    'Claude Monet',
+    'Leonardo da Vinci',
+    'Rembrandt',
+    'Johannes Vermeer',
+    'Michelangelo',
+    'Paul Cézanne',
+    'Edgar Degas',
+    'Pierre-Auguste Renoir'
+  ];
+}
+
+/**
+ * Interface cho ArtistPortfolio
+ */
+export interface ArtistPortfolio {
+  artistName: string;
+  artworks: MetObject[];
+  totalWorks: number;
+  birthYear: string | null;
+  deathYear: string | null;
+  nationality: string;
+  artistBio: string;
+}
+
+/**
+ * Lấy artworks của nhiều nghệ sỹ
+ */
+export async function getArtistPortfolios(artistNames: string[]): Promise<ArtistPortfolio[]> {
+  try {
+    const portfolios: ArtistPortfolio[] = [];
+    
+    for (const artistName of artistNames) {
+      try {
+        const searchResult = await searchByArtist(artistName);
+        
+        if (searchResult.objectIDs && searchResult.objectIDs.length > 0) {
+          const artworkIds = searchResult.objectIDs.slice(0, 10);
+          const artworks: MetObject[] = [];
+          
+          for (const id of artworkIds) {
+            if (artworks.length >= 3) break;
+            
+            const artwork = await getArtworkDetails(id);
+            if (artwork && artwork.primaryImage) {
+              artworks.push(artwork);
+            }
+          }
+          
+          if (artworks.length > 0) {
+            const firstArtwork = artworks[0];
+            const artistDisplayName = firstArtwork.artistDisplayName || artistName;
+            const artistBio = firstArtwork.artistDisplayBio || '';
+            
+            let birthYear: string | null = null;
+            let deathYear: string | null = null;
+            const yearMatch = artistBio.match(/(\d{4})[–-](\d{4})/);
+            if (yearMatch) {
+              birthYear = yearMatch[1];
+              deathYear = yearMatch[2];
+            }
+            
+            const nationalityMatch = artistBio.match(/^([^,]+)/);
+            const nationality = nationalityMatch ? nationalityMatch[1] : '';
+            
+            portfolios.push({
+              artistName: artistDisplayName,
+              artworks,
+              totalWorks: searchResult.total,
+              birthYear,
+              deathYear,
+              nationality,
+              artistBio
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing artist ${artistName}:`, error);
+        continue;
+      }
+    }
+    
+    return portfolios;
+  } catch (error) {
+    console.error('Error fetching artist portfolios:', error);
+    return [];
+  }
+}
+
+/**
+ * Lấy tất cả artworks của một nghệ sỹ (cho trang chi tiết)
+ */
+export async function getArtistAllArtworks(artistName: string, limit: number = 20): Promise<MetObject[]> {
+  try {
+    const searchResult = await searchByArtist(artistName);
+    
+    if (!searchResult.objectIDs || searchResult.objectIDs.length === 0) {
+      return [];
+    }
+
+    const artworkIds = searchResult.objectIDs.slice(0, limit);
+    const artworks: MetObject[] = [];
+    
+    for (const id of artworkIds) {
+      const artwork = await getArtworkDetails(id);
+      if (artwork && artwork.primaryImage) {
+        artworks.push(artwork);
+      }
+    }
+    
+    return artworks;
+  } catch (error) {
+    console.error(`Error fetching all artworks for ${artistName}:`, error);
+    return [];
+  }
+}
+
+// Export object để dễ dàng sử dụng
+export const metMuseumAPI = {
+  searchArtworks,
+  getObject,
+  getArtistArtworks,
+  getFeaturedArtists,
+  getHighlightArtworks,
+  getRecentArtworks,
+  getDepartments,
+  getDepartmentArtworkCount,
+  getFeaturedDepartments,
+  getTimelineArtworks,
+  searchPopularArtists,
+  getArtistPortfolios,
+  getArtistAllArtworks,
+};

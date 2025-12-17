@@ -9,6 +9,27 @@ export interface Artist {
   color: string;
 }
 
+// Met Museum API Types
+export interface MetArtwork {
+  objectID: number;
+  primaryImage: string;
+  primaryImageSmall?: string;
+  title: string;
+  artistDisplayName?: string;
+  artistDisplayBio?: string;
+  objectDate?: string;
+}
+
+export interface ArtistPortfolio {
+  artistName: string;
+  artworks: MetArtwork[];
+  totalWorks: number;
+  birthYear?: string | null;
+  deathYear?: string | null;
+  nationality?: string;
+  artistBio?: string;
+}
+
 export interface Category {
   id: string;
   name: string;
