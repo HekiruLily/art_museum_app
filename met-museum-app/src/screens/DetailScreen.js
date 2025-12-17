@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,17 @@ import {
   Dimensions,
   Linking,
   StatusBar,
+  ActivityIndicator,
+  Modal,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
 import { useFavorites } from '../context/FavoritesContext';
+import { useMusic } from '../context/MusicContext';
+import MusicPlayer from '../components/MusicPlayer';
+import MiniPlayer from '../components/MiniPlayer';
+import { DeezerService } from '../services/deezerService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -19,11 +27,102 @@ export default function DetailScreen({ route, navigation }) {
   const { artwork } = route.params;
   const { toggleFavorite, isFavorite } = useFavorites();
   const favorited = isFavorite(artwork.objectID);
+  
+  // Use shared music context
+  const { loadTracks, playableTracks, stopAndClear, pause } = useMusic();
+
+  // UI states
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [showFullImage, setShowFullImage] = useState(false);
+  const [loadingMusic, setLoadingMusic] = useState(false);
+  const [musicLoaded, setMusicLoaded] = useState(false);
 
   const openInBrowser = () => {
     if (artwork.objectURL) {
       Linking.openURL(artwork.objectURL);
     }
+  };
+
+  const openGoogleMaps = async () => {
+    // The Metropolitan Museum of Art coordinates
+    const metMuseumLat = 40.7794;
+    const metMuseumLng = -73.9632;
+    
+    try {
+      // Request location permission
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status === 'granted') {
+        // Get current location
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        
+        const userLat = location.coords.latitude;
+        const userLng = location.coords.longitude;
+        
+        // Open Google Maps with directions from current location
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${metMuseumLat},${metMuseumLng}&travelmode=transit`;
+        
+        Linking.openURL(url);
+      } else {
+        // Permission denied - open maps without origin (user can set manually)
+        Alert.alert(
+          'Quyền vị trí bị từ chối',
+          'Bạn có muốn mở bản đồ mà không có vị trí hiện tại không?',
+          [
+            { text: 'Hủy', style: 'cancel' },
+            { 
+              text: 'Mở bản đồ', 
+              onPress: () => {
+                const url = `https://www.google.com/maps/dir/?api=1&destination=${metMuseumLat},${metMuseumLng}&travelmode=transit`;
+                Linking.openURL(url);
+              }
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Location error:', error);
+      // Fallback - open maps without origin
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${metMuseumLat},${metMuseumLng}&travelmode=transit`;
+      Linking.openURL(url);
+    }
+  };
+
+  const handleImagePress = async () => {
+    setShowFullImage(true);
+    
+    // Only load music if not already loaded
+    if (!musicLoaded) {
+      setLoadingMusic(true);
+      
+      try {
+        // Search for tracks based on artwork mood using Deezer
+        const result = await DeezerService.searchTracks(artwork);
+        
+        if (result.tracks.length > 0) {
+          // Load tracks into shared context
+          loadTracks(result.tracks, result.mood, result.moodDescription);
+          setMusicLoaded(true);
+        }
+      } catch (error) {
+        console.error('Music analysis error:', error);
+      } finally {
+        setLoadingMusic(false);
+      }
+    }
+  };
+
+  const handleExpandPlayer = () => {
+    setShowMusicPlayer(true);
+  };
+
+  const closeFullImage = () => {
+    setShowFullImage(false);
+    setShowMusicPlayer(false);
+    // Stop music when closing fullscreen
+    pause();
   };
 
   return (
@@ -55,14 +154,21 @@ export default function DetailScreen({ route, navigation }) {
       </LinearGradient>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Main Image */}
-        <View style={styles.imageContainer}>
+        {/* Main Image - Tap to open fullscreen with music */}
+        <TouchableOpacity 
+          style={styles.imageContainer}
+          onPress={handleImagePress}
+          activeOpacity={0.9}
+        >
           <Image
             source={{ uri: artwork.primaryImage }}
             style={styles.mainImage}
             resizeMode="cover"
           />
-        </View>
+          <View style={styles.imageTapHint}>
+            <Text style={styles.imageTapHintText}>🎵 Nhấn để thưởng thức</Text>
+          </View>
+        </TouchableOpacity>
 
         {/* Content Card */}
         <View style={styles.contentCard}>
@@ -156,9 +262,13 @@ export default function DetailScreen({ route, navigation }) {
               </View>
             )}
 
-            {/* Location Card */}
+            {/* Location Card - Tap to open Google Maps */}
             {(artwork.galleryNumber || artwork.objectName || artwork.culture) && (
-              <View style={styles.infoCardWrapper}>
+              <TouchableOpacity 
+                style={styles.infoCardWrapper}
+                onPress={openGoogleMaps}
+                activeOpacity={0.7}
+              >
                 <LinearGradient
                   colors={['#ecfdf5', '#eefdf4']}
                   start={{ x: 0, y: 1 }}
@@ -179,9 +289,11 @@ export default function DetailScreen({ route, navigation }) {
                       {artwork.galleryNumber ? `Gallery ${artwork.galleryNumber}` : 
                        artwork.objectName || artwork.culture || 'Đang trưng bày'}
                     </Text>
+                    <Text style={styles.infoHint}>🗺️ Nhấn để xem chỉ đường</Text>
                   </View>
+                  <Text style={styles.arrowIcon}>→</Text>
                 </LinearGradient>
-              </View>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -225,6 +337,70 @@ export default function DetailScreen({ route, navigation }) {
           <View style={{ height: 100 }} />
         </View>
       </ScrollView>
+
+      {/* Fullscreen Image Modal with Music */}
+      <Modal
+        visible={showFullImage}
+        animationType="fade"
+        onRequestClose={closeFullImage}
+        statusBarTranslucent
+      >
+        <View style={styles.fullImageContainer}>
+          <StatusBar barStyle="light-content" />
+          
+          {/* Background blur */}
+          <Image
+            source={{ uri: artwork.primaryImage }}
+            style={styles.fullImageBackground}
+            blurRadius={30}
+          />
+          <View style={styles.fullImageOverlay} />
+          
+          {/* Close button */}
+          <TouchableOpacity style={styles.closeFullImageButton} onPress={closeFullImage}>
+            <Text style={styles.closeFullImageText}>✕</Text>
+          </TouchableOpacity>
+          
+          {/* Main image */}
+          <Image
+            source={{ uri: artwork.primaryImage }}
+            style={styles.fullImage}
+            resizeMode="contain"
+          />
+          
+          {/* Artwork info */}
+          <View style={styles.fullImageInfo}>
+            <Text style={styles.fullImageTitle} numberOfLines={2}>{artwork.title}</Text>
+            {artwork.artistDisplayName && (
+              <Text style={styles.fullImageArtist}>{artwork.artistDisplayName}</Text>
+            )}
+          </View>
+          
+          {/* Music loading indicator */}
+          {loadingMusic && (
+            <View style={styles.musicLoadingContainer}>
+              <ActivityIndicator color="#fff" size="large" />
+              <Text style={styles.musicLoadingText}>Đang phân tích cảm xúc...</Text>
+            </View>
+          )}
+
+          {/* Mini Player */}
+          {!loadingMusic && playableTracks.length > 0 && (
+            <MiniPlayer
+              artwork={artwork}
+              onExpand={handleExpandPlayer}
+              visible={showFullImage}
+            />
+          )}
+        </View>
+      </Modal>
+
+      {/* Music Player Modal */}
+      <MusicPlayer
+        visible={showMusicPlayer}
+        onClose={() => setShowMusicPlayer(false)}
+        artwork={artwork}
+      />
 
       {/* Floating Like Button */}
       <View style={styles.floatingButtonContainer}>
@@ -295,10 +471,27 @@ const styles = StyleSheet.create({
     height: height * 0.35,
     width: width,
     backgroundColor: '#000',
+    position: 'relative',
   },
   mainImage: {
     width: '100%',
     height: '100%',
+  },
+  imageTapHint: {
+    position: 'absolute',
+    bottom: 16,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  imageTapHintText: {
+    color: '#fff',
+    fontSize: 14,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   contentCard: {
     backgroundColor: '#fff',
@@ -360,6 +553,17 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
   },
+  infoHint: {
+    fontSize: 11,
+    color: '#43e97b',
+    marginTop: 4,
+  },
+  arrowIcon: {
+    fontSize: 18,
+    color: '#43e97b',
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
   descriptionSection: {
     marginBottom: 24,
   },
@@ -399,6 +603,76 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     letterSpacing: 1,
+  },
+  fullImageContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImageBackground: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+  fullImageOverlay: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  closeFullImageButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  closeFullImageText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  fullImage: {
+    width: width,
+    height: height * 0.6,
+  },
+  fullImageInfo: {
+    position: 'absolute',
+    bottom: 140,
+    left: 20,
+    right: 20,
+    alignItems: 'center',
+  },
+  fullImageTitle: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  fullImageArtist: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  musicLoadingContainer: {
+    position: 'absolute',
+    bottom: 100,
+    alignItems: 'center',
+  },
+  musicLoadingText: {
+    color: '#fff',
+    fontSize: 14,
+    marginTop: 10,
   },
   floatingButtonContainer: {
     position: 'absolute',
