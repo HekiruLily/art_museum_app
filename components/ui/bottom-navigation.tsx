@@ -19,6 +19,10 @@ export function BottomNavigation({ activeTab = 'home', onTabPress }: BottomNavPr
   const handleTabPress = (tab: 'home' | 'artworks' | 'search' | 'favorites') => {
     if (tab === 'home') {
       router.replace('/(tabs)/');
+    } else if (tab === 'favorites') {
+      router.push('/(tabs)/favourites');
+    } else if (tab === 'artworks') {
+      router.push('/artworks');
     }
     onTabPress?.(tab);
   };

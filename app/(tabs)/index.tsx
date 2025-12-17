@@ -116,7 +116,6 @@ export default function HomeScreen() {
       // Navigate to artworks screen
       router.push('/artworks');
     } else {
-      Alert.alert('Category', `Navigating to ${category.name}`);
       // Navigate to other category screens
     }
   };
@@ -170,7 +169,6 @@ export default function HomeScreen() {
   };
 
   const handleTabPress = (tab: 'home' | 'artworks' | 'search' | 'favorites') => {
-    Alert.alert('Navigation', `Navigating to ${tab}`);
     // Navigate to different tabs
   };
 
