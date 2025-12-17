@@ -10,6 +10,7 @@ import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { MOCK_CATEGORIES, MOCK_ROOMS, MOCK_ARTWORKS } from '@/data/mock-data';
 import { Artist, Category, Room, Artwork } from '@/models/types';
 import { useMetArtists, useMetDepartments, useMetArtworks, useRecentArtworks } from '@/hooks/use-met-api';
+import { metMuseumAPI } from '@/services/met-api';
 
 /**
  * Helper function to parse year from objectDate string
@@ -111,15 +112,36 @@ export default function HomeScreen() {
     } else if (category.id === '2' || category.name === 'Nghệ sĩ') {
       // Navigate to artists screen
       router.push('/artists');
+    } else if (category.id === '1' || category.name === 'Tác phẩm') {
+      // Navigate to artworks screen
+      router.push('/artworks');
     } else {
       Alert.alert('Category', `Navigating to ${category.name}`);
       // Navigate to other category screens
     }
   };
 
-  const handleArtistPress = (artist: Artist) => {
-    Alert.alert('Artist', `Viewing ${artist.name}`);
-    // Navigate to artist detail screen
+  const handleArtistPress = async (artist: Artist) => {
+    try {
+      // Fetch full artist portfolio data
+      const portfolios = await metMuseumAPI.getArtistPortfolios([artist.name]);
+      
+      if (portfolios.length > 0) {
+        const artistData = portfolios[0];
+        // Navigate to artist detail screen with artist data
+        router.push({
+          pathname: '/artist-detail',
+          params: {
+            artistData: JSON.stringify(artistData)
+          }
+        });
+      } else {
+        Alert.alert('Thông báo', 'Không thể tải thông tin nghệ sĩ');
+      }
+    } catch (error) {
+      console.error('Error loading artist details:', error);
+      Alert.alert('Lỗi', 'Không thể tải thông tin nghệ sĩ');
+    }
   };
 
   const handleRoomPress = (room: Room) => {
@@ -128,8 +150,13 @@ export default function HomeScreen() {
   };
 
   const handleArtworkPress = (artwork: Artwork) => {
-    Alert.alert('Artwork', `Viewing ${artwork.title}`);
     // Navigate to artwork detail screen
+    // Extract objectID from artwork id (format: "artwork-{objectID}" or "recent-{objectID}")
+    const objectID = artwork.id.replace('artwork-', '').replace('recent-', '');
+    router.push({
+      pathname: '/artwork-detail',
+      params: { artworkId: objectID }
+    });
   };
 
   const handleViewAllArtists = () => {

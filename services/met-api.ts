@@ -583,10 +583,14 @@ export async function getArtistAllArtworks(artistName: string, limit: number = 2
   }
 }
 
+// Alias cho getObject để dễ sử dụng
+export const getArtworkById = getObject;
+
 // Export object để dễ dàng sử dụng
 export const metMuseumAPI = {
   searchArtworks,
   getObject,
+  getArtworkById,
   getArtistArtworks,
   getFeaturedArtists,
   getHighlightArtworks,
