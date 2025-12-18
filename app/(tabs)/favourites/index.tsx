@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFavorites } from '@/context/FavoritesContext';
 import { metMuseumAPI } from '@/services/met-api';
+import { BottomNavigation } from '@/components/ui/bottom-navigation';
 
 interface FavoriteArtwork {
   objectID: number;
@@ -90,34 +91,37 @@ export default function FavouritesScreen() {
         <Text style={styles.headerTitle}>Yêu thích</Text>
       </View>
 
-      {favorites.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.heartCircle}>
-            <MaterialIcons name="favorite" size={42} color="#fff" />
-          </View>
-          <Text style={styles.emptyTitle}>Chưa có tác phẩm yêu thích</Text>
-          <Text style={styles.emptySubtitle}>
-            Hãy khám phá và thêm tác phẩm vào danh sách yêu thích của bạn
-          </Text>
-          <Pressable style={styles.exploreButton} onPress={onExplore}>
-            <View style={styles.exploreInner}>
-              <MaterialIcons name="collections" size={18} color="#fff" />
-              <Text style={styles.exploreText}>  Khám phá tác phẩm</Text>
+      <View style={{ flex: 1 }}>
+        {favorites.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <View style={styles.heartCircle}>
+              <MaterialIcons name="favorite" size={42} color="#fff" />
             </View>
-          </Pressable>
-        </View>
-      ) : (
-        <FlatList
-          data={artworks}
-          keyExtractor={(i) => i.objectID.toString()}
-          contentContainerStyle={styles.list}
-          numColumns={2}
-          columnWrapperStyle={{ justifyContent: 'space-between' }}
-          renderItem={({ item }) => (
-            <FavouriteCard item={item} onToggle={onToggle} onPress={onArtworkPress} />
-          )}
-        />
-      )}
+            <Text style={styles.emptyTitle}>Chưa có tác phẩm yêu thích</Text>
+            <Text style={styles.emptySubtitle}>
+              Hãy khám phá và thêm tác phẩm vào danh sách yêu thích của bạn
+            </Text>
+            <Pressable style={styles.exploreButton} onPress={onExplore}>
+              <View style={styles.exploreInner}>
+                <MaterialIcons name="collections" size={18} color="#fff" />
+                <Text style={styles.exploreText}>  Khám phá tác phẩm</Text>
+              </View>
+            </Pressable>
+          </View>
+        ) : (
+          <FlatList
+            data={artworks}
+            keyExtractor={(i) => i.objectID.toString()}
+            contentContainerStyle={[styles.list, { paddingBottom: 80 }]}
+            numColumns={2}
+            columnWrapperStyle={{ justifyContent: 'space-between' }}
+            renderItem={({ item }) => (
+              <FavouriteCard item={item} onToggle={onToggle} onPress={onArtworkPress} />
+            )}
+          />
+        )}
+      </View>
+      <BottomNavigation activeTab="favorites" />
     </View>
   );
 }

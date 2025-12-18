@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { metMuseumAPI } from '@/services/met-api';
 import { ArtworkCard } from '@/components/home/artwork-card';
+import { BottomNavigation } from '@/components/ui/bottom-navigation';
 
 interface Tab {
   id: string;
@@ -479,6 +480,7 @@ export default function ArtworksScreen() {
           </View>
         </View>
       </Modal>
+      <BottomNavigation activeTab="artworks" />
     </View>
   );
 }

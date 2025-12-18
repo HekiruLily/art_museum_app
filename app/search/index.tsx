@@ -8,6 +8,7 @@ import { SearchResultCard } from '@/components/search/SearchResultCard';
 import { useSearch } from '@/hooks/search/useSearch';
 import { LinearGradient } from 'expo-linear-gradient';
 import { metMuseumAPI } from '@/services/met-api';
+import { BottomNavigation } from '@/components/ui/bottom-navigation';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -63,6 +64,7 @@ export default function SearchScreen() {
         </Pressable>
 
         <Text style={styles.headerTitle}>Tìm kiếm</Text>
+        <View style={{ width: 40 }} />
       </LinearGradient>
 
       <SearchBar
@@ -149,15 +151,16 @@ export default function SearchScreen() {
         />
       </View>
       </View>
+      <BottomNavigation activeTab="search" />
     </>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fafafa' },
-  header: { paddingTop: 48, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
-  back: { padding: 6, marginRight: 10 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  header: { paddingTop: 48, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  back: { padding: 6 },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff', flex: 1, textAlign: 'center' },
   filterBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-end' },
   filterSheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '80%' },
   filterHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
