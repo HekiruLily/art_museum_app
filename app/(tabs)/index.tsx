@@ -115,6 +115,9 @@ export default function HomeScreen() {
     } else if (category.id === '1' || category.name === 'Tác phẩm') {
       // Navigate to artworks screen
       router.push('/artworks');
+    } else if (category.id === '3' || category.name === 'Phòng ban') {
+      // Navigate to departments screen
+      router.push('/departments');
     } else {
       // Navigate to other category screens
     }
@@ -144,8 +147,10 @@ export default function HomeScreen() {
   };
 
   const handleRoomPress = (room: Room) => {
-    Alert.alert('Room', `Viewing ${room.name}`);
-    // Navigate to room detail screen
+    // Navigate to department detail screen
+    if (room.departmentId) {
+      router.push(`/departments/${room.departmentId}`);
+    }
   };
 
   const handleArtworkPress = (artwork: Artwork) => {
@@ -164,8 +169,8 @@ export default function HomeScreen() {
   };
 
   const handleViewAllRooms = () => {
-    Alert.alert('View All', 'Viewing all rooms');
-    // Navigate to rooms list screen
+    // Navigate to departments list screen
+    router.push('/departments');
   };
 
   const handleTabPress = (tab: 'home' | 'artworks' | 'search' | 'favorites') => {

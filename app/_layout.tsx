@@ -25,6 +25,7 @@ export default function RootLayout() {
             <Stack.Screen name="artist-detail" options={{ headerShown: false }} />
             <Stack.Screen name="artworks" options={{ headerShown: false }} />
             <Stack.Screen name="artwork-detail" options={{ headerShown: false }} />
+            <Stack.Screen name="departments" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>
